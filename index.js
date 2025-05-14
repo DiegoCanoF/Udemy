@@ -7,11 +7,11 @@ const path = require('path');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static('uploads')); 
 
 
-app.get('/', (req, res) => {
-  res.redirect('/login.html');
-});
 
 // Importar rutas
 const authRoutes = require('./routes/auth');
@@ -21,6 +21,7 @@ const videosRoutes = require('./routes/videos');
 const formulariosRoutes = require('./routes/formularios');
 const imagenesRoutes = require('./routes/imagenes');
 const archivosRoutes = require('./routes/archivos');
+const contenidoRoutes = require('./routes/contenido');
 
 
 
@@ -36,6 +37,7 @@ app.use('/api/videos', videosRoutes);
 app.use('/api/formularios', formulariosRoutes);
 app.use('/api/imagenes', imagenesRoutes);
 app.use('/api/archivos', archivosRoutes);
+app.use('/api/contenido', contenidoRoutes); // ✅ esto ya debería funcionar
 
 
 

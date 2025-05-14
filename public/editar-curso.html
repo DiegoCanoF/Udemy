@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Editar Curso</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-dark text-white">
- <!-- Navbar -->
+
+  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">Dashboard Profesor</a>
@@ -16,13 +17,13 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item">
-            <a class="nav-link active" href="dashboard-profesor.html">Inicio</a>
+            <a class="nav-link active" href="#">Inicio</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="crear-curso.html">Crear Curso</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">Ver Alumnos</a>
+            <a class="nav-link" href="ver-alumnos.html">Ver Alumnos</a>
           </li>
           <li class="nav-item">
             <button class="btn btn-danger" onclick="logout()">Cerrar sesión</button>
@@ -32,76 +33,143 @@
     </div>
   </nav>
 
-
-
-
+  <!-- Contenido principal -->
   <div class="container py-5">
     <h1>Editar Curso</h1>
 
-    <form id="formEditarCurso">
+    <!-- Formulario de edición básica del curso -->
+    <form id="formCurso">
       <div class="mb-3">
-        <label for="titulo" class="form-label">Título del Curso</label>
-        <input type="text" class="form-control" id="titulo" required />
+        <label for="titulo" class="form-label">Título del curso</label>
+        <input type="text" class="form-control" id="titulo" required>
       </div>
-
       <div class="mb-3">
         <label for="descripcion" class="form-label">Descripción</label>
-        <textarea class="form-control" id="descripcion" rows="4" required></textarea>
+        <textarea class="form-control" id="descripcion" rows="3" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Guardar cambios</button>
+    </form>
+
+    <hr class="my-5">
+
+    <!-- SUBIDA DE ARCHIVOS RELACIONADOS -->
+    <h2>Contenido del Curso</h2>
+
+    <form id="formContenido" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label for="tipo" class="form-label">Tipo de contenido</label>
+        <select class="form-select" id="tipo" required>
+          <option value="">Seleccionar tipo</option>
+          <option value="video">Video</option>
+          <option value="imagen">Imagen</option>
+          <option value="archivo">Archivo (PDF, Excel, etc.)</option>
+          <option value="formulario">Formulario</option>
+          <option value="crucigrama">Crucigrama</option>
+          <option value="sopa">Sopa de Letras</option>
+        </select>
       </div>
 
-      <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+      <div class="mb-3">
+        <label for="tituloContenido" class="form-label">Título</label>
+        <input type="text" class="form-control" id="tituloContenido" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="archivoContenido" class="form-label">Archivo o JSON</label>
+        <input type="file" class="form-control" id="archivoContenido">
+      </div>
+
+      <button type="submit" class="btn btn-success">Subir contenido</button>
     </form>
   </div>
 
   <script>
-    const cursoId = new URLSearchParams(window.location.search).get('id');
+    // Datos globales
+    const urlParams = new URLSearchParams(window.location.search);
+    const cursoId = urlParams.get('id');
     const usuario = JSON.parse(localStorage.getItem('usuario'));
 
-    if (!cursoId || !usuario || usuario.rol !== 'profesor') {
-      alert('Acceso no autorizado');
-      window.location.href = 'login.html';
+    if (!cursoId || !usuario) {
+      alert('Faltan datos. Redirigiendo...');
+      location.href = 'dashboard-profesor.html';
     }
 
-    // Cargar datos del curso
+    // Cargar datos actuales del curso
     async function cargarCurso() {
       try {
         const res = await fetch(`http://localhost:3000/api/cursos/${cursoId}`);
-        if (!res.ok) throw new Error('Error al obtener el curso');
         const curso = await res.json();
-
         document.getElementById('titulo').value = curso.titulo;
         document.getElementById('descripcion').value = curso.descripcion;
       } catch (err) {
-        console.error(err);
-        alert('No se pudo cargar el curso');
+        console.error('Error al cargar el curso:', err);
+        alert('No se pudo cargar la información del curso');
       }
     }
 
-    // Guardar los cambios del curso
-    document.getElementById('formEditarCurso').addEventListener('submit', async function (e) {
+    // Guardar cambios básicos del curso
+    document.getElementById('formCurso').addEventListener('submit', async e => {
       e.preventDefault();
-
-      const titulo = document.getElementById('titulo').value;
-      const descripcion = document.getElementById('descripcion').value;
-
+      const datos = {
+        titulo: document.getElementById('titulo').value,
+        descripcion: document.getElementById('descripcion').value,
+      };
       try {
         const res = await fetch(`http://localhost:3000/api/cursos/${cursoId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ titulo, descripcion })
+          body: JSON.stringify(datos),
         });
-
-        if (!res.ok) throw new Error('Error al guardar');
-        alert('Curso actualizado correctamente');
+        if (res.ok) {
+          alert('Curso actualizado con éxito');
+        } else {
+          alert('Error al actualizar el curso');
+        }
       } catch (err) {
         console.error(err);
-        alert('Error al guardar los cambios');
+        alert('Error de red al actualizar el curso');
       }
     });
 
+    // Subir contenido (video, imagen o archivo)
+    document.getElementById('formContenido').addEventListener('submit', async e => {
+      e.preventDefault();
+      const tipo = document.getElementById('tipo').value;
+      const titulo = document.getElementById('tituloContenido').value;
+      const archivo = document.getElementById('archivoContenido').files[0];
+
+      if (!['video', 'imagen', 'archivo'].includes(tipo)) {
+        alert('Este tipo aún no está implementado en el backend');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('cursoId', cursoId);
+      formData.append('titulo', titulo);
+formData.append(tipo, archivo); // tipo = 'video', así que append('video', archivo)
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/contenido/${tipo}`, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!res.ok) throw new Error('Error al subir contenido');
+        alert('Contenido subido correctamente');
+      } catch (err) {
+        console.error(err);
+        alert('Hubo un problema al subir el contenido');
+      }
+    });
+
+    // Cargar curso al inicio
     window.onload = cargarCurso;
+
+    // Logout
+    function logout() {
+      localStorage.removeItem('usuario');
+      window.location.href = 'login.html';
+    }
   </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

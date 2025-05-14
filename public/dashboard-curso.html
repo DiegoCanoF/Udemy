@@ -6,174 +6,129 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-dark text-white">
+
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">Dashboard Estudiante</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <a class="nav-link" href="mis-cursos.html">Mis Inscripciones</a>
-        </li>
-          <li class="nav-item">
-            <a class="nav-link" href="dashboard-estudiante.html">Cursos Disponibles</a>
-          </li>
-          <li class="nav-item">
-            <button class="btn btn-danger" onclick="logout()">Cerrar sesión</button>
-          </li>
+          <li class="nav-item"><a class="nav-link" href="mis-cursos.html">Mis Inscripciones</a></li>
+          <li class="nav-item"><a class="nav-link" href="dashboard-estudiante.html">Cursos Disponibles</a></li>
+          <li class="nav-item"><button class="btn btn-danger" onclick="logout()">Cerrar sesión</button></li>
         </ul>
       </div>
     </div>
   </nav>
-  
-  <!-- Información del Curso -->
+
+  <!-- Información general del curso -->
   <div class="container py-5">
     <h1 class="mb-4" id="cursoTitulo">Cargando curso...</h1>
     <p id="cursoDescripcion"></p>
-
-    <div id="contenidoCurso">
-      <!-- Aquí se cargarán los documentos, videos, etc. del curso -->
-    </div>
-
-    <!-- Botón para inscribirse -->
     <div class="mt-4" id="inscripcionArea">
       <button id="inscribirBtn" class="btn btn-success">Inscribirse al curso</button>
       <p id="mensajeInscripcion" class="text-success" style="display: none;">¡Ya estás inscrito en este curso!</p>
     </div>
   </div>
 
+  <!-- Contenido aleatorio -->
+  <div class="container mt-5">
+    <h2>Contenido del Curso</h2>
+    <div id="contenidoCurso" class="row g-4"></div>
+  </div>
+
   <script>
-    // Obtener el ID del curso de la URL
     const urlParams = new URLSearchParams(window.location.search);
     const cursoId = urlParams.get('id');
-    const usuario = JSON.parse(localStorage.getItem('usuario')); // Obtener usuario desde el localStorage
+    const usuario = JSON.parse(localStorage.getItem('usuario'));
 
     if (!cursoId) {
       alert('No se ha proporcionado el ID del curso');
-      window.location.href = 'dashboard-estudiante.html'; // Redirigir al dashboard si no hay ID
+      window.location.href = 'dashboard-estudiante.html';
     }
 
-    // Cargar la información del curso
+    // Muestra título y descripción
     async function cargarCurso() {
       try {
         const res = await fetch(`http://localhost:3000/api/cursos/${cursoId}`);
-        if (!res.ok) {
-          throw new Error('No se pudo obtener la información del curso');
-        }
+        if (!res.ok) throw new Error();
         const curso = await res.json();
-
-        // Mostrar los detalles del curso
         document.getElementById('cursoTitulo').textContent = curso.titulo;
         document.getElementById('cursoDescripcion').textContent = curso.descripcion;
-
-        // Cargar otros detalles, como videos, documentos, etc.
-        cargarContenidoCurso(cursoId);
-
-        // Comprobar si el usuario ya está inscrito en este curso
         comprobarInscripcion();
-      } catch (error) {
-        console.error('Error al cargar el curso:', error);
-        alert('Hubo un problema al cargar la información del curso.');
+      } catch {
+        console.error('Fallo al cargar curso');
       }
     }
 
-    // Función para cargar el contenido del curso (videos, documentos, etc.)
-    async function cargarContenidoCurso(cursoId) {
-      try {
-        const res = await fetch(`http://localhost:3000/api/cursos/${cursoId}/contenido`);
-        const contenido = await res.json();
-
-        const contenidoContainer = document.getElementById('contenidoCurso');
-        contenidoContainer.innerHTML = ''; // Limpiar el contenido anterior
-
-        // Mostrar videos, documentos, etc.
-        contenido.forEach(item => {
-          const itemDiv = document.createElement('div');
-          itemDiv.classList.add('mb-4');
-          itemDiv.innerHTML = `
-            <h5>${item.titulo}</h5>
-            <a href="${item.url}" class="btn btn-info" target="_blank">Ver ${item.tipo}</a>
-          `;
-          contenidoContainer.appendChild(itemDiv);
-        });
-      } catch (error) {
-        console.error('Error al cargar el contenido del curso:', error);
-        alert('Error al cargar el contenido del curso.');
-      }
-    }
-
-    // Función para comprobar si el estudiante ya está inscrito en el curso
+    // Comprueba inscripción y ajusta botón
     async function comprobarInscripcion() {
-      if (!usuario || !usuario.id) {
-        alert('No se ha encontrado al usuario. Inicia sesión nuevamente.');
-        return;
-      }
-
+      if (!usuario?.id) return;
       try {
         const res = await fetch(`http://localhost:3000/api/inscripciones/estudiante/${usuario.id}`);
-        const cursosInscritos = await res.json();
-        const yaInscrito = cursosInscritos.some(curso => curso.id === parseInt(cursoId));
-
-        if (yaInscrito) {
-          // Si el usuario ya está inscrito, ocultamos el botón y mostramos el mensaje
+        const ins = await res.json();
+        if (ins.some(c => c.id === +cursoId)) {
           document.getElementById('inscribirBtn').style.display = 'none';
           document.getElementById('mensajeInscripcion').style.display = 'block';
         }
-      } catch (error) {
-        console.error('Error al comprobar inscripción:', error);
+      } catch {
+        console.error('Fallo al comprobar inscripción');
       }
     }
 
-    // Función para inscribirse al curso
+    // Inscripción
     async function inscribirseAlCurso() {
-      if (!usuario || !usuario.id) {
-        alert('No se ha encontrado al usuario. Inicia sesión nuevamente.');
-        return;
-      }
-
       try {
-        const res = await fetch('http://localhost:3000/api/inscripciones', {
+        await fetch('http://localhost:3000/api/inscripciones', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            estudiante_id: usuario.id,
-            curso_id: cursoId,
-          }),
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ estudiante_id: usuario.id, curso_id: cursoId })
         });
-
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || 'No se pudo inscribir al curso');
-        }
-
-        // Después de la inscripción, ocultar el botón y mostrar el mensaje
         document.getElementById('inscribirBtn').style.display = 'none';
         document.getElementById('mensajeInscripcion').style.display = 'block';
-        alert('Inscripción realizada con éxito');
-      } catch (error) {
-        console.error('Error al inscribirse:', error);
-        alert('Hubo un problema al inscribirse en el curso');
+      } catch {
+        alert('Error al inscribirse');
       }
     }
 
-    // Llamada a la función de carga del curso
-    window.onload = cargarCurso;
+    // Genera y muestra contenido aleatorio
+    function cargarContenidoAleatorio() {
+      const tipos = ['video','imagen','archivo','formulario','crucigrama','sopa'];
+      const container = document.getElementById('contenidoCurso');
+      container.innerHTML = '';
 
-    // Agregar evento al botón de inscripción
-    document.getElementById('inscribirBtn').addEventListener('click', inscribirseAlCurso);
+      tipos.forEach(tipo => {
+        const n = Math.floor(Math.random()*5)+1;
+        let url = `/uploads/${tipo}s/${tipo}${n}.${tipo==='imagen'?'jpg': tipo==='video'?'mp4':'pdf'}`;
+        const col = document.createElement('div');
+        col.className = 'col-md-6';
+        let html = `<div class="card bg-secondary text-white p-3"><h5>${tipo.charAt(0).toUpperCase()+tipo.slice(1)} ${n}</h5>`;
 
-    // Función para cerrar sesión
+        if (tipo==='video') html+=`<video controls width="100%"><source src="${url}" type="video/mp4"></video>`;
+        else if (tipo==='imagen') html+=`<img src="${url}" class="img-fluid rounded">`;
+        else html+=`<a href="${url}" class="btn btn-info mt-2" target="_blank">Abrir ${tipo}</a>`;
+
+        html+='</div>';
+        col.innerHTML = html;
+        container.appendChild(col);
+      });
+    }
+
     function logout() {
       localStorage.removeItem('usuario');
-      window.location.href = 'login.html';
+      location.href='login.html';
     }
-  </script>
 
+    document.getElementById('inscribirBtn').addEventListener('click', inscribirseAlCurso);
+
+    window.onload = () => {
+      cargarCurso();
+      cargarContenidoAleatorio();
+    };
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
