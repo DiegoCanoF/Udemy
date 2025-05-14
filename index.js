@@ -9,6 +9,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 
+app.get('/', (req, res) => {
+  res.redirect('/login.html');
+});
 
 // Importar rutas
 const authRoutes = require('./routes/auth');
@@ -35,9 +38,6 @@ app.use('/api/imagenes', imagenesRoutes);
 app.use('/api/archivos', archivosRoutes);
 
 
-app.get('/', (req, res) => {
-  res.redirect('/login.html');
-});
 
 
 // Iniciar servidor
